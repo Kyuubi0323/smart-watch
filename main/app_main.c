@@ -26,20 +26,22 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "app_hal.h"
 
+#include "st7789.h"
 static const char *TAG = "MAIN";
 
-void app_main()
-{   
-    ESP_ERROR_CHECK( nvs_flash_init());
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    
-    hal_setup();
 
-    hal_loop();
 
-    return 0;
+void app_main(void)
+{
+    /* LCD HW initialization */
+    ESP_ERROR_CHECK(app_lcd_init());
+
+    /* LVGL initialization */
+    ESP_ERROR_CHECK(app_lvgl_init());
+
+    /* Show LVGL objects */
+    app_main_display();
 }
+
 
