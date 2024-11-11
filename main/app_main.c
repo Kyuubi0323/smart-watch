@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 
-
+#include "img_test.c"
 #include "st7789.h"
 static const char *TAG = "MAIN";
 

@@ -99,7 +99,7 @@ err:
 
 
 
-static esp_err_t app_lvgl_init(void)
+esp_err_t app_lvgl_init(void)
 {
     /* Initialize LVGL */
     const lvgl_port_cfg_t lvgl_cfg = {
@@ -136,7 +136,7 @@ static esp_err_t app_lvgl_init(void)
 }
 
 
-static void _app_button_cb(lv_event_t *e)
+void _app_button_cb(lv_event_t *e)
 {
     lv_disp_rotation_t rotation = lv_disp_get_rotation(lvgl_disp);
     rotation++;
@@ -149,7 +149,7 @@ static void _app_button_cb(lv_event_t *e)
     lv_disp_set_rotation(lvgl_disp, rotation);
 }
 
-static void app_main_display(void)
+void app_main_display(void)
 {
     lv_obj_t *scr = lv_scr_act();
 
