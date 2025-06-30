@@ -1,7 +1,32 @@
 ## IDF Component Manager Manifest File
 dependencies:
-  lvgl/lvgl: "^8.4.0"
+  lvgl/lvgl: "^9.3.0"
   espressif/esp_lvgl_port: "^2.3.3"
+  espressif/arduino-esp32: "^3.0.0"
+  # h2zero/NimBLE-Arduino: "^1.4.0"  # Not available in registry
+  ## Third-party components from the registry
+
+  # Use GitHub repo directly
+  LovyanGFX:
+    git: https://github.com/lovyan03/LovyanGFX.git
+    version: "1.1.16"
+
+  # NimBLE-Arduino:
+  #   git: https://github.com/h2zero/NimBLE-Arduino.git
+  #   version: "1.4.2"  # Has compatibility issues with ESP32-S3
+
+  # chronos:
+  #   git: https://github.com/fbiego/chronos-esp32
+  #   version: "1.7.0"  # Arduino-specific, incompatible with ESP-IDF
+
+  timber:
+    git: https://github.com/fbiego/Timber.git
+    version: "1.0.0"
+
+  arduinojson:
+    git: https://github.com/bblanchon/ArduinoJson.git
+    version: "v7.1.0"
+
   ## Required IDF version
   idf:
     version: ">=4.1.0"
