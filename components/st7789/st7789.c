@@ -79,7 +79,7 @@ esp_err_t app_lcd_init(void)
     /* LCD backlight on */
     ESP_ERROR_CHECK(gpio_set_level(LCD_GPIO_BL, LCD_BL_ON_LEVEL));
 
-    esp_lcd_panel_set_gap(lcd_panel, 0, 20);
+    esp_lcd_panel_set_gap(lcd_panel, 0, 0);
     esp_lcd_panel_invert_color(lcd_panel, true);
 
     return ret;
@@ -124,8 +124,8 @@ esp_err_t app_lvgl_init(void)
         /* Rotation values must be same as used in esp_lcd for initial settings of the screen */
         .rotation = {
             .swap_xy = false,
-            .mirror_x = false,
-            .mirror_y = false,
+            .mirror_x = true,
+            .mirror_y = true,
         },
         .flags = {
             .buff_dma = true,
