@@ -1,5 +1,6 @@
 #include "round_lcd.h"
 #include "esp_lcd_gc9a01.h"
+#include "esp_lcd_touch_cst816s.h"
 #include <math.h>
 
 /* ESP32-C3 Mini Round LCD Pin Configuration (based on fbiego/esp32-c3-mini) */
@@ -141,11 +142,25 @@ esp_err_t app_touch_init(void)
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 
-    /* Initialize touch controller - Generic I2C touch for CST816S */
+    /* Initialize CST816S touch controller */
     ESP_LOGI(TAG, "Initialize CST816S touch controller");
+    esp_lcd_touch_config_t touch_cfg = {
+        .x_max = LCD_H_RES,
+        .y_max = LCD_V_RES,
+        .rst_gpio_num = TOUCH_GPIO_RST,
+        .int_gpio_num = TOUCH_GPIO_INT,
+        .levels = {
+            .reset = 0,
+            .interrupt = 0,
+        },
+        .flags = {
+            .swap_xy = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+        },
+    };
     
-    // Note: We'll implement a simple CST816S touch handler since ESP-IDF may not have built-in support
-    // For now, we'll set up the basic I2C communication
+    ESP_RETURN_ON_ERROR(esp_lcd_touch_new_i2c_cst816s(TOUCH_I2C_NUM, &touch_cfg, &touch_handle), TAG, "Touch controller init failed");
     
     return ret;
 }
@@ -198,17 +213,144 @@ esp_err_t app_lvgl_init(void)
 }
 
 
+/* Global variables */
+static int current_watchface = 0;
+static lv_obj_t *watchface_container = NULL;
+
+void create_digital_watchface(lv_obj_t *parent);
+void create_analog_watchface(lv_obj_t *parent);
+
 void _app_button_cb(lv_event_t *e)
 {
-    lv_disp_rotation_t rotation = lv_disp_get_rotation(lvgl_disp);
-    rotation++;
-    if (rotation > LV_DISPLAY_ROTATION_270)
-    {
-        rotation = LV_DISPLAY_ROTATION_0;
+    /* Cycle through different watch faces on touch */
+    current_watchface = (current_watchface + 1) % 2;
+    
+    if (watchface_container) {
+        lv_obj_del(watchface_container);
+    }
+    
+    watchface_container = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(watchface_container, LCD_H_RES, LCD_V_RES);
+    lv_obj_set_style_bg_color(watchface_container, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(watchface_container, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_width(watchface_container, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(watchface_container, 0, LV_PART_MAIN);
+    lv_obj_center(watchface_container);
+    
+    if (current_watchface == 0) {
+        create_digital_watchface(watchface_container);
+    } else {
+        create_analog_watchface(watchface_container);
+    }
+    
+    ESP_LOGI(TAG, "Switched to watchface %d", current_watchface);
+}
+
+void create_digital_watchface(lv_obj_t *parent) 
+{
+    /* Create circular border */
+    lv_obj_t *border = lv_obj_create(parent);
+    lv_obj_set_size(border, LCD_H_RES - 4, LCD_V_RES - 4);
+    lv_obj_set_style_bg_opa(border, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_color(border, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_border_width(border, 2, LV_PART_MAIN);
+    lv_obj_set_style_radius(border, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_center(border);
+
+    /* Create time label */
+    lv_obj_t *time_label = lv_label_create(parent);
+    lv_label_set_text(time_label, "12:34");
+    lv_obj_set_style_text_font(time_label, &lv_font_montserrat_32, LV_PART_MAIN);
+    lv_obj_set_style_text_color(time_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -20);
+
+    /* Create date label */
+    lv_obj_t *date_label = lv_label_create(parent);
+    lv_label_set_text(date_label, "MON 15");
+    lv_obj_set_style_text_font(date_label, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_color(date_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 20);
+
+    /* Add hour markers */
+    for (int i = 0; i < 12; i++) {
+        lv_obj_t *dot = lv_obj_create(parent);
+        lv_obj_set_size(dot, 4, 4);
+        lv_obj_set_style_bg_color(dot, lv_color_white(), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_border_width(dot, 0, LV_PART_MAIN);
+        lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+        
+        float angle = (i * 30.0f - 90.0f) * M_PI / 180.0f;
+        int x = (LCD_H_RES / 2) + (LCD_H_RES / 2 - 25) * cos(angle) - 2;
+        int y = (LCD_V_RES / 2) + (LCD_V_RES / 2 - 25) * sin(angle) - 2;
+        lv_obj_set_pos(dot, x, y);
     }
 
-    /* LCD HW rotation */
-    lv_disp_set_rotation(lvgl_disp, rotation);
+    /* Info label */
+    lv_obj_t *info_label = lv_label_create(parent);
+    lv_label_set_text(info_label, "Digital\nWatch");
+    lv_obj_set_style_text_font(info_label, &lv_font_montserrat_10, LV_PART_MAIN);
+    lv_obj_set_style_text_color(info_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_align(info_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_align(info_label, LV_ALIGN_CENTER, 0, 60);
+}
+
+void create_analog_watchface(lv_obj_t *parent)
+{
+    /* Create circular border */
+    lv_obj_t *border = lv_obj_create(parent);
+    lv_obj_set_size(border, LCD_H_RES - 4, LCD_V_RES - 4);
+    lv_obj_set_style_bg_opa(border, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_color(border, lv_palette_main(LV_PALETTE_BLUE), LV_PART_MAIN);
+    lv_obj_set_style_border_width(border, 3, LV_PART_MAIN);
+    lv_obj_set_style_radius(border, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_center(border);
+
+    /* Center dot */
+    lv_obj_t *center = lv_obj_create(parent);
+    lv_obj_set_size(center, 8, 8);
+    lv_obj_set_style_bg_color(center, lv_palette_main(LV_PALETTE_BLUE), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(center, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_width(center, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(center, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_center(center);
+
+    /* Hour hand (pointing to 12) */
+    lv_obj_t *hour_hand = lv_obj_create(parent);
+    lv_obj_set_size(hour_hand, 4, 60);
+    lv_obj_set_style_bg_color(hour_hand, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(hour_hand, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_width(hour_hand, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(hour_hand, 2, LV_PART_MAIN);
+    lv_obj_align(hour_hand, LV_ALIGN_CENTER, 0, -30);
+
+    /* Minute hand (pointing to 7) */  
+    lv_obj_t *minute_hand = lv_obj_create(parent);
+    lv_obj_set_size(minute_hand, 2, 80);
+    lv_obj_set_style_bg_color(minute_hand, lv_palette_main(LV_PALETTE_BLUE), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(minute_hand, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_width(minute_hand, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(minute_hand, 1, LV_PART_MAIN);
+    lv_obj_align(minute_hand, LV_ALIGN_CENTER, 25, 25);
+
+    /* Numbers at 12, 3, 6, 9 */
+    const char* numbers[] = {"12", "3", "6", "9"};
+    int positions[][2] = {{0, -80}, {70, 0}, {0, 80}, {-70, 0}};
+    
+    for (int i = 0; i < 4; i++) {
+        lv_obj_t *num_label = lv_label_create(parent);
+        lv_label_set_text(num_label, numbers[i]);
+        lv_obj_set_style_text_font(num_label, &lv_font_montserrat_16, LV_PART_MAIN);
+        lv_obj_set_style_text_color(num_label, lv_color_white(), LV_PART_MAIN);
+        lv_obj_align(num_label, LV_ALIGN_CENTER, positions[i][0], positions[i][1]);
+    }
+
+    /* Info label */
+    lv_obj_t *info_label = lv_label_create(parent);
+    lv_label_set_text(info_label, "Analog");
+    lv_obj_set_style_text_font(info_label, &lv_font_montserrat_10, LV_PART_MAIN);
+    lv_obj_set_style_text_color(info_label, lv_palette_main(LV_PALETTE_BLUE), LV_PART_MAIN);
+    lv_obj_align(info_label, LV_ALIGN_CENTER, 0, 50);
 }
 
 void app_main_display(void)
@@ -222,63 +364,30 @@ void app_main_display(void)
     lv_obj_set_style_bg_color(scr, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
 
-    /* Create a circular mask for round display */
-    static lv_draw_mask_radius_param_t mask_rout_param;
-    lv_draw_mask_radius_init(&mask_rout_param, &(lv_area_t){0, 0, LCD_H_RES-1, LCD_V_RES-1}, LCD_H_RES/2, false);
-    int16_t mask_id = lv_draw_mask_add(&mask_rout_param, NULL);
+    /* Add touch event to screen for watchface cycling */
+    lv_obj_add_event_cb(scr, _app_button_cb, LV_EVENT_CLICKED, NULL);
 
-    /* Create main container for watch face */
-    lv_obj_t *watch_face = lv_obj_create(scr);
-    lv_obj_set_size(watch_face, LCD_H_RES, LCD_V_RES);
-    lv_obj_set_style_bg_color(watch_face, lv_color_black(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(watch_face, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_border_width(watch_face, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(watch_face, 0, LV_PART_MAIN);
-    lv_obj_center(watch_face);
+    /* Create initial watchface container */
+    watchface_container = lv_obj_create(scr);
+    lv_obj_set_size(watchface_container, LCD_H_RES, LCD_V_RES);
+    lv_obj_set_style_bg_color(watchface_container, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(watchface_container, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_width(watchface_container, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(watchface_container, 0, LV_PART_MAIN);
+    lv_obj_center(watchface_container);
 
-    /* Create circular border */
-    lv_obj_t *border = lv_obj_create(watch_face);
-    lv_obj_set_size(border, LCD_H_RES - 4, LCD_V_RES - 4);
-    lv_obj_set_style_bg_opa(border, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_border_color(border, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_border_width(border, 2, LV_PART_MAIN);
-    lv_obj_set_style_radius(border, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-    lv_obj_center(border);
+    /* Start with digital watchface */
+    create_digital_watchface(watchface_container);
 
-    /* Create time label */
-    lv_obj_t *time_label = lv_label_create(watch_face);
-    lv_label_set_text(time_label, "12:34");
-    lv_obj_set_style_text_font(time_label, &lv_font_montserrat_32, LV_PART_MAIN);
-    lv_obj_set_style_text_color(time_label, lv_color_white(), LV_PART_MAIN);
-    lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -20);
+    /* Create instruction label */
+    lv_obj_t *instruction_label = lv_label_create(scr);
+    lv_label_set_text(instruction_label, "Touch to switch faces");
+    lv_obj_set_style_text_font(instruction_label, &lv_font_montserrat_10, LV_PART_MAIN);
+    lv_obj_set_style_text_color(instruction_label, lv_palette_main(LV_PALETTE_GREY), LV_PART_MAIN);
+    lv_obj_align(instruction_label, LV_ALIGN_BOTTOM_MID, 0, -10);
 
-    /* Create date label */
-    lv_obj_t *date_label = lv_label_create(watch_face);
-    lv_label_set_text(date_label, "MON 15");
-    lv_obj_set_style_text_font(date_label, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(date_label, lv_color_white(), LV_PART_MAIN);
-    lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 20);
-
-    /* Add some dots around the circle for watch markers */
-    for (int i = 0; i < 12; i++) {
-        lv_obj_t *dot = lv_obj_create(watch_face);
-        lv_obj_set_size(dot, 6, 6);
-        lv_obj_set_style_bg_color(dot, lv_color_white(), LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, LV_PART_MAIN);
-        lv_obj_set_style_border_width(dot, 0, LV_PART_MAIN);
-        lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-        
-        /* Position dots around the circle */
-        float angle = i * 30.0f * 3.14159f / 180.0f; // 30 degrees apart
-        int x = (LCD_H_RES / 2) + (LCD_H_RES / 2 - 20) * cos(angle) - 3;
-        int y = (LCD_V_RES / 2) + (LCD_V_RES / 2 - 20) * sin(angle) - 3;
-        lv_obj_set_pos(dot, x, y);
-    }
-
-    /* Remove the mask */
-    lv_draw_mask_remove_id(mask_id);
-
-    ESP_LOGI(TAG, "Round watch face displayed successfully");
+    ESP_LOGI(TAG, "Round watch display initialized (GC9A01 240x240) - Touch screen to cycle watchfaces");
+    ESP_LOGI(TAG, "Integration of Felix Biego's round LCD concepts complete");
 
     /* Task unlock */
     lvgl_port_unlock();

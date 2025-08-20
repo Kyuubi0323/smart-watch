@@ -10,7 +10,7 @@
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_vendor.h"
 #include "esp_lcd_panel_ops.h"
-#include "esp_lcd_touch.h"
+#include "esp_lcd_touch_cst816s.h"
 #include "esp_lvgl_port.h"
 #include "lv_conf.h"
 
