@@ -1,21 +1,88 @@
 #include "st7789.h"
+#include "../custominclude/main.h"
 
-#define LCD_GPIO_BL GPIO_NUM_15
-#define LCD_GPIO_DC GPIO_NUM_4
-#define LCD_GPIO_CS GPIO_NUM_5
-#define LCD_GPIO_SCLK GPIO_NUM_6
-#define LCD_GPIO_MOSI GPIO_NUM_7
-#define LCD_GPIO_RST GPIO_NUM_8
+// Use configurations from main.h or set defaults
+#ifdef BL
+    #if BL == -1
+        #define LCD_GPIO_BL GPIO_NUM_NC
+    #else
+        #define LCD_GPIO_BL (gpio_num_t)BL
+    #endif
+#else
+    #define LCD_GPIO_BL GPIO_NUM_15  // fallback
+#endif
 
-#define LCD_H_RES   320
+#ifdef DC
+    #define LCD_GPIO_DC (gpio_num_t)DC
+#else
+    #define LCD_GPIO_DC GPIO_NUM_4   // fallback  
+#endif
+
+#ifdef CS
+    #define LCD_GPIO_CS (gpio_num_t)CS
+#else
+    #define LCD_GPIO_CS GPIO_NUM_5   // fallback
+#endif
+
+#ifdef SCLK
+    #define LCD_GPIO_SCLK (gpio_num_t)SCLK
+#else
+    #define LCD_GPIO_SCLK GPIO_NUM_6 // fallback
+#endif
+
+#ifdef MOSI
+    #define LCD_GPIO_MOSI (gpio_num_t)MOSI
+#else
+    #define LCD_GPIO_MOSI GPIO_NUM_7 // fallback
+#endif
+
+#ifdef RST
+    #if RST == -1
+        #define LCD_GPIO_RST GPIO_NUM_NC
+    #else
+        #define LCD_GPIO_RST (gpio_num_t)RST
+    #endif
+#else
+    #define LCD_GPIO_RST GPIO_NUM_8  // fallback
+#endif
+
+// Use WIDTH/HEIGHT from main.h or set defaults
+#ifdef WIDTH
+    #define LCD_H_RES   WIDTH
+#else
+    #define LCD_H_RES   320
+#endif
+
+#ifdef HEIGHT  
+    #define LCD_V_RES   HEIGHT
+#else
+    #define LCD_V_RES   240
+#endif
+
 #define LCD_DRAW_BUFF_HEIGHT    50
-#define LCD_V_RES   240
 
-#define LCD_SPI_NUM         SPI3_HOST
+// Use SPI from main.h or set default
+#ifdef SPI
+    #define LCD_SPI_NUM         SPI
+#else
+    #define LCD_SPI_NUM         SPI3_HOST
+#endif
+
 #define LCD_PIXEL_CLK_HZ    40 * 1000 * 1000
 #define LCD_CMD_BITS        8
 #define LCD_PARAM_BITS      8
-#define LCD_COLOR_SPACE     ESP_LCD_COLOR_SPACE_BGR
+
+// Use RGB_ORDER from main.h if available  
+#ifdef RGB_ORDER
+    #if RGB_ORDER == true
+        #define LCD_COLOR_SPACE     ESP_LCD_COLOR_SPACE_RGB
+    #else
+        #define LCD_COLOR_SPACE     ESP_LCD_COLOR_SPACE_BGR
+    #endif
+#else
+    #define LCD_COLOR_SPACE     ESP_LCD_COLOR_SPACE_BGR
+#endif
+
 #define LCD_BITS_PER_PIXEL  16
 #define LCD_DRAW_BUFF_DOUBLE 1
 #define LCD_BL_ON_LEVEL     1
@@ -37,7 +104,10 @@ esp_err_t app_lcd_init(void)
         .mode = GPIO_MODE_OUTPUT,
         .pin_bit_mask = 1ULL << LCD_GPIO_BL
     };
-    ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
+    // Only configure backlight GPIO if it's not GPIO_NUM_NC
+    if (LCD_GPIO_BL != GPIO_NUM_NC) {
+        ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
+    }
 
     /* LCD initialization */
     ESP_LOGD(TAG, "Initialize SPI bus");
@@ -77,9 +147,24 @@ esp_err_t app_lcd_init(void)
     esp_lcd_panel_disp_on_off(lcd_panel, true);
 
     /* LCD backlight on */
-    ESP_ERROR_CHECK(gpio_set_level(LCD_GPIO_BL, LCD_BL_ON_LEVEL));
+    if (LCD_GPIO_BL != GPIO_NUM_NC) {
+        ESP_ERROR_CHECK(gpio_set_level(LCD_GPIO_BL, LCD_BL_ON_LEVEL));
+    }
 
-    esp_lcd_panel_set_gap(lcd_panel, 0, 20);
+    // Set gap based on OFFSET_X and OFFSET_Y from configuration
+#ifdef OFFSET_X
+    #define LCD_OFFSET_X OFFSET_X
+#else
+    #define LCD_OFFSET_X 0
+#endif
+
+#ifdef OFFSET_Y  
+    #define LCD_OFFSET_Y OFFSET_Y
+#else
+    #define LCD_OFFSET_Y 20
+#endif
+
+    esp_lcd_panel_set_gap(lcd_panel, LCD_OFFSET_X, LCD_OFFSET_Y);
     esp_lcd_panel_invert_color(lcd_panel, true);
 
     return ret;
