@@ -34,6 +34,9 @@ static const char *TAG = "MAIN";
 
 void app_main(void)
 {
+    /* Print configuration for verification */
+    print_display_config();
+    
     /* LCD HW initialization */
     ESP_ERROR_CHECK(app_lcd_init());
 
