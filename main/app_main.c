@@ -27,7 +27,7 @@
 #include <string.h>
 
 #include "img_test.c"
-#include "st7789.h"
+#include "round_lcd.h"
 static const char *TAG = "MAIN";
 
 
@@ -36,6 +36,9 @@ void app_main(void)
 {
     /* LCD HW initialization */
     ESP_ERROR_CHECK(app_lcd_init());
+
+    /* Touch controller initialization */
+    ESP_ERROR_CHECK(app_touch_init());
 
     /* LVGL initialization */
     ESP_ERROR_CHECK(app_lvgl_init());
