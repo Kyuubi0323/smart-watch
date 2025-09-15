@@ -5,6 +5,5 @@
 
 PROJECT_NAME := smart-watch
 
-EXTRA_COMPONENT_DIRS = ../../../SensorLib
 
 include $(IDF_PATH)/make/project.mk

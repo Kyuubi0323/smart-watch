@@ -1,0 +1,9 @@
+[submodule "components/slog"]
+	path = components/slog
+	url = https://github.com/Kyuubi0323/slog
+[submodule "components/qmi8658c"]
+	path = components/qmi8658c
+	url = https://github.com/Kyuubi0323/qmi8658c
+[submodule "components/st7789"]
+	path = components/st7789
+	url = https://github.com/Kyuubi0323/st7789

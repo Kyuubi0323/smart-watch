@@ -1,0 +1,16 @@
+## IDF Component Manager Manifest File
+version: "0.1.0"
+description: "QMI8658C - ESP-IDF Accelerometer/Gyroscope Component with C struct function pointers"
+url: https://github.com/Kyuubi0323/qmi8658c
+dependencies:
+  # Component dependencies
+  idf:
+    version: ">=4.4.0"
+targets:
+  - esp32
+  - esp32s2
+  - esp32s3
+  - esp32c3
+  - esp32c2
+  - esp32c6
+  - esp32h2

@@ -1,47 +1,25 @@
+/**
+ * @file example_usage.c
+ * @brief Example usage of QMI8658C component
+ */
+
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/event_groups.h"
-#include "freertos/queue.h"
-#include "freertos/ringbuf.h"
-#include "freertos/semphr.h"
-
-#include "nvs_flash.h"
-#include "esp_log.h"
-#include "esp_wifi.h"
-#include "esp_smartconfig.h"
-#include "esp_spiffs.h"
-#include "esp_http_client.h"
-#include "esp_attr.h"
-#include "esp_flash.h"
-#include "esp_system.h"
-#include "esp_http_server.h"
-#include "esp_mac.h"
-#include "esp_chip_info.h"
-
-#include "driver/gpio.h"
-#include "driver/uart.h"
-#include "driver/spi_master.h"
 #include "driver/i2c.h"
-
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-
-
 #include "qmi8658c.h"
-#include "idflog.h"
-#include "st7789.h"
 
-static const char *TAG = "MAIN";
-
-#define I2C_MASTER_SCL_IO           10    /*!< GPIO number used for I2C master clock */
-#define I2C_MASTER_SDA_IO           11    /*!< GPIO number used for I2C master data  */
+#define I2C_MASTER_SCL_IO           22    /*!< GPIO number used for I2C master clock */
+#define I2C_MASTER_SDA_IO           21    /*!< GPIO number used for I2C master data  */
 #define I2C_MASTER_NUM              0     /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
-#define I2C_MASTER_FREQ_HZ          100000 /*!< I2C master clock frequency */
+#define I2C_MASTER_FREQ_HZ          400000 /*!< I2C master clock frequency */
 #define I2C_MASTER_TX_BUF_DISABLE   0     /*!< I2C master doesn't need buffer */
 #define I2C_MASTER_RX_BUF_DISABLE   0     /*!< I2C master doesn't need buffer */
 #define I2C_MASTER_TIMEOUT_MS       1000
 
+/**
+ * @brief i2c master initialization
+ */
 static esp_err_t i2c_master_init(void)
 {
     int i2c_master_port = I2C_MASTER_NUM;
@@ -53,7 +31,6 @@ static esp_err_t i2c_master_init(void)
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
         .master.clk_speed = I2C_MASTER_FREQ_HZ,
-        .clk_flags = 0, // Add this line
     };
 
     i2c_param_config(i2c_master_port, &conf);
@@ -65,10 +42,13 @@ void app_main(void)
 {
     // Initialize I2C
     ESP_ERROR_CHECK(i2c_master_init());
+    ESP_LOGI("MAIN", "I2C initialized successfully");
+
+    // Example 1: Using the global instance (Arduino-style)
+    ESP_LOGI("MAIN", "=== QMI8658C Global Instance Example ===");
     
     // Initialize with default configuration
     esp_err_t ret = qmi8658c_init_default(I2C_MASTER_NUM);
-    
     if (ret != ESP_OK) {
         ESP_LOGE("MAIN", "Failed to initialize QMI8658C: %s", esp_err_to_name(ret));
         return;
@@ -122,8 +102,10 @@ void app_main(void)
         .i2c_address = QMI8658C_I2C_ADDR_DEFAULT,
         .acc_range = QMI8658C_ACC_RANGE_4G,
         .gyro_range = QMI8658C_GYRO_RANGE_512DPS,
-        .acc_odr = QMI8658C_ACC_ODR_250HZ,
-        .gyro_odr = QMI8658C_ACC_ODR_250HZ,
+        .acc_odr = QMI8658C_ODR_250HZ,
+        .gyro_odr = QMI8658C_ODR_250HZ,
+        .enable_acc = true,
+        .enable_gyro = true
     };
     
     ret = my_sensor.init(&my_sensor, &config);

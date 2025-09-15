@@ -1,33 +1,67 @@
 dependencies:
-  espressif/esp_lvgl_port:
-    component_hash: ff682937ac7f94653e45719f888db637830e90dd0ba3ff5b72d2c808c7a93949
-    dependencies:
-    - name: idf
-      require: private
-      version: '>=4.4'
-    - name: lvgl/lvgl
-      registry_url: https://components.espressif.com
-      require: public
-      version: '>=8,<10'
-    source:
-      registry_url: https://components.espressif.com/
-      type: service
-    version: 2.4.1
   idf:
     source:
       type: idf
-    version: 5.2.3
-  lvgl/lvgl:
-    component_hash: d7c1ac037ae6e85d94897f807d6e7ba0946a83e720074fc95a4f6241da9f9f53
-    dependencies: []
+    version: 5.1.5
+  qmi8658c:
+    component_hash: 532d4f8a80508f32eea525350010cf6c22979d123311c3fbc460d7c30d47f11b
+    dependencies:
+    - name: idf
+      version: '>=4.4.0'
     source:
-      registry_url: https://components.espressif.com/
-      type: service
-    version: 8.4.0
+      git: https://github.com/Kyuubi0323/qmi8658c
+      path: .
+      type: git
+    targets:
+    - esp32
+    - esp32s2
+    - esp32s3
+    - esp32c3
+    - esp32c2
+    - esp32c6
+    - esp32h2
+    version: eceb647c944a2ef11c6b56c0b0b25a15ac118492
+  slog:
+    component_hash: 6229255b62f0b1bb0b0284d58d8ac50b3b2e148eedc57c50c2d447ca0c6af718
+    dependencies:
+    - name: idf
+      version: '>=4.4.0'
+    source:
+      git: https://github.com/Kyuubi0323/slog
+      path: .
+      type: git
+    targets:
+    - esp32
+    - esp32s2
+    - esp32s3
+    - esp32c3
+    - esp32c2
+    - esp32c6
+    - esp32h2
+    version: 56e92c583654f1c0a5fb1e613b82c19092ff1fd4
+  st7789:
+    component_hash: 2ddcd6da0d7ea286a7a3b0cd47a37a5aaf3375c0c8960e6d724f8fae3251033d
+    dependencies:
+    - name: idf
+      version: '>=4.4.0'
+    source:
+      git: https://github.com/Kyuubi0323/st7789
+      path: .
+      type: git
+    targets:
+    - esp32
+    - esp32s2
+    - esp32s3
+    - esp32c3
+    - esp32c2
+    - esp32c6
+    - esp32h2
+    version: 7855cbc1d3a9f4866dbe227185b1d1966220bd9d
 direct_dependencies:
-- espressif/esp_lvgl_port
 - idf
-- lvgl/lvgl
-manifest_hash: 81e95a199ef27fbe3ba606c00d506816573441e8bffb08f4d1af380368f8a9b0
+- qmi8658c
+- slog
+- st7789
+manifest_hash: 2ebf5a3c4638b2559a0588c39ca48929a6bbf2cfa3aa824e36822d2fdf37aa9f
 target: esp32s3
 version: 2.0.0

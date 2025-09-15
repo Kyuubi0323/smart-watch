@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../picoclock"
+		},
+		{
+			"path": "../ECG-IOT-2024/firmware/auto_send"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"app_hal.h": "c"
+		}
+	}
+}
